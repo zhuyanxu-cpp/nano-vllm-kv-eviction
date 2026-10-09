@@ -26,6 +26,7 @@ class Sequence:
         self.num_scheduled_tokens = 0
         self.is_prefill = True
         self.block_table = []
+        self.num_evicted_tokens = 0
         self.temperature = sampling_params.temperature
         self.max_tokens = sampling_params.max_tokens
         self.ignore_eos = sampling_params.ignore_eos
@@ -60,6 +61,51 @@ class Sequence:
     def last_block_num_tokens(self):
         return self.num_tokens - (self.num_blocks - 1) * self.block_size
 
+    # ---- KV eviction: logical length (num_tokens) vs physical length -----------
+    # num_tokens is the logical sequence length: what the model sees, what RoPE
+    # positions are derived from, and what the prefix cache hashes. After an
+    # eviction some of those tokens no longer have KV resident in the block table,
+    # so every *slot index* must be derived from the physical length instead.
+    # num_evicted_tokens is the single source of truth for the difference; the
+    # rest are derived, so they cannot drift apart.
+
+    @property
+    def physical_num_tokens(self) -> int:
+        """Number of tokens whose KV the model accounts for."""
+        return self.num_tokens - self.num_evicted_tokens
+
+    @property
+    def resident_num_tokens(self) -> int:
+        """Tokens whose KV *slot* exists in the block table right now.
+
+        Normally equal to `physical_num_tokens`. It is one less for exactly one
+        step per block boundary: `append_token` grows the sequence immediately,
+        while the block for the new token is only allocated by `may_append` when
+        the sequence is scheduled again. Eviction must use this number, because
+        that boundary step is precisely when memory pressure shows up - so it
+        cannot simply refuse to evict sequences in this state.
+        """
+        return min(self.physical_num_tokens, len(self.block_table) * self.block_size)
+
+    @property
+    def physical_num_blocks(self) -> int:
+        return (self.physical_num_tokens + self.block_size - 1) // self.block_size
+
+    @property
+    def physical_last_block_num_tokens(self) -> int:
+        return self.physical_num_tokens - (self.physical_num_blocks - 1) * self.block_size
+
+    @property
+    def has_evicted_kv(self) -> bool:
+        """True once KV has been evicted: the block table no longer holds a
+        faithful copy of the first `num_tokens` tokens, so this sequence must
+        stay out of the content-hashed prefix cache."""
+        return self.num_evicted_tokens > 0
+
+    def reset_eviction_state(self):
+        """Called when KV is thrown away entirely (preemption -> full recompute)."""
+        self.num_evicted_tokens = 0
+
     def block(self, i):
         assert 0 <= i < self.num_blocks
         return self.token_ids[i*self.block_size: (i+1)*self.block_size]
@@ -71,10 +117,13 @@ class Sequence:
 
     def __getstate__(self):
         last_state = self.last_token if not self.is_prefill else self.token_ids
-        return (self.num_tokens, self.num_prompt_tokens, self.num_cached_tokens, self.num_scheduled_tokens, self.block_table, last_state)
+        # num_evicted_tokens has to travel: the worker ranks compute their own
+        # slot_mapping and cache lengths from the physical length, so dropping it
+        # here would put every rank except 0 on a different address space.
+        return (self.num_tokens, self.num_prompt_tokens, self.num_cached_tokens, self.num_scheduled_tokens, self.block_table, last_state, self.num_evicted_tokens)
 
     def __setstate__(self, state):
-        self.num_tokens, self.num_prompt_tokens, self.num_cached_tokens, self.num_scheduled_tokens, self.block_table, last_state = state
+        self.num_tokens, self.num_prompt_tokens, self.num_cached_tokens, self.num_scheduled_tokens, self.block_table, last_state, self.num_evicted_tokens = state
         if isinstance(last_state, list):
             self.token_ids = last_state
             self.last_token = self.token_ids[-1]

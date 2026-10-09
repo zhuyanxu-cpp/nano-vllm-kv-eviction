@@ -1,0 +1,82 @@
+{
+  "args": {
+    "model": "D:\\huggingface\\Qwen3-0.6B",
+    "out": "results\\ctl_h2o.json",
+    "requests": 2,
+    "prompt_len": 256,
+    "prompt_file": null,
+    "max_tokens": 8,
+    "temperature": 0.6,
+    "seed": 0,
+    "mbt": 512,
+    "util": 0.85,
+    "enforce_eager": true,
+    "eviction": "on",
+    "policy": "h2o",
+    "ratio": 0.5,
+    "sink": 4,
+    "window": 128,
+    "probe_layers": 4,
+    "record_history": false
+  },
+  "engine": {
+    "num_kvcache_blocks": 48,
+    "block_size": 256,
+    "kv_token_capacity": 12288,
+    "max_model_len": 4096,
+    "init_seconds": 5.871439400012605
+  },
+  "workload": {
+    "requests": 2,
+    "prompt_len": 256,
+    "max_tokens": 8,
+    "total_prompt_tokens": 512,
+    "total_completion_tokens": 16
+  },
+  "metrics": {
+    "wall_seconds": 1.4207683999557048,
+    "steps": 8,
+    "ttft_mean_s": 0.383080700004939,
+    "ttft_max_s": 0.383080700004939,
+    "tpot_mean_s": 0.14824109999296656,
+    "output_tokens_per_s": 11.261511728793257,
+    "total_tokens_per_s": 371.6298870501775,
+    "step_mean_s": 0.17758300000423333,
+    "block_occupancy_mean": 3.25,
+    "block_occupancy_max": 4,
+    "block_pool_size": 48
+  },
+  "eviction": {
+    "events": 0,
+    "tokens_evicted": 0,
+    "blocks_freed": 0,
+    "preemptions": 0,
+    "select_seconds": 0.0,
+    "move_seconds": 0.0,
+    "score_read_seconds": 0.0,
+    "kv_private_sequences": 0,
+    "record_history": false
+  },
+  "outputs": {
+    "1": [
+      1238,
+      311,
+      2615,
+      422,
+      1381,
+      304,
+      279,
+      2266
+    ],
+    "2": [
+      6821,
+      1163,
+      580,
+      819,
+      17141,
+      426,
+      2253,
+      271
+    ]
+  }
+}

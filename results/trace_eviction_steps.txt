@@ -1,0 +1,9 @@
+﻿# eviction=on policy=lru ratio=0.5 mbt=512 util=0.85 requests=32 prompt_len=1024 max_tokens=8
+step    kind   bs fin preempt  ev ev_tok ev_blk wait  run used free
+  25  decode   12   0       0   6   1542      6   20   12   48    0
+  26  decode   11   0       1   5     10      5   21   11   45    3
+  27  decode   11   0       0   1    257      1   21   11   48    0
+  28  decode   10   0       1   0      0      0   22   10   45    3
+  56  decode   10   0       1   3    771      3   12   10   44    4
+  85  decode   10   0       1   3    771      3    2   10   44    4
+# TOTAL steps=100 preemptions=4 evictions=18 evicted_tokens=3351 blocks_freed=18

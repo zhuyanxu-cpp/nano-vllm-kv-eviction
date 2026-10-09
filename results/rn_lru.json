@@ -1,0 +1,259 @@
+{
+  "engine": {
+    "num_kvcache_blocks": 48,
+    "block_size": 256,
+    "kv_token_capacity": 12288,
+    "max_model_len": 4096
+  },
+  "workload": {
+    "requests": 8,
+    "prompt_tokens": 8192,
+    "max_tokens": 16,
+    "total_completion_tokens": 128,
+    "oversubscription": 0.6666666666666666
+  },
+  "metrics": {
+    "wall_seconds": 10.847439699980896,
+    "steps": 31,
+    "ttft_mean_s": 3.7746564749832032,
+    "ttft_p90_s": 5.852322999970056,
+    "ttft_max_s": 6.67303309997078,
+    "tpot_mean_s": 0.47151888166651285,
+    "output_tokens_per_s": 11.800019501396761,
+    "step_mean_s": 0.3499007806418494,
+    "block_occupancy_mean": 27.35483870967742,
+    "block_occupancy_max": 40,
+    "block_pool_size": 48,
+    "prefill_seconds": 6.6726901000365615,
+    "prefill_steps": 16,
+    "prefill_tokens": 8192,
+    "decode_seconds": 4.174234099860769,
+    "decode_steps": 15,
+    "decode_batch_seqs": 120
+  },
+  "eviction": {
+    "events": 0,
+    "tokens_evicted": 0,
+    "blocks_freed": 0,
+    "preemptions": 0,
+    "select_seconds": 0.0,
+    "move_seconds": 0.0,
+    "score_read_seconds": 0.0,
+    "kv_private_sequences": 0,
+    "record_history": false
+  },
+  "outputs": {
+    "1": [
+      56,
+      1093,
+      3390,
+      36,
+      12,
+      22,
+      23,
+      24,
+      15,
+      12,
+      15,
+      151645,
+      198,
+      151643,
+      33975,
+      25
+    ],
+    "2": [
+      11810,
+      53,
+      1348,
+      12,
+      22,
+      22,
+      23,
+      24,
+      12,
+      16,
+      151645,
+      198,
+      151643,
+      40,
+      686,
+      1431
+    ],
+    "3": [
+      58710,
+      868,
+      12,
+      22,
+      17,
+      21,
+      17,
+      12,
+      17,
+      151645,
+      198,
+      151643,
+      3838,
+      374,
+      279,
+      6234
+    ],
+    "4": [
+      785,
+      6234,
+      75493,
+      374,
+      25,
+      3070,
+      94829,
+      12,
+      18,
+      20,
+      17,
+      16,
+      12,
+      18,
+      334,
+      13
+    ],
+    "5": [
+      3788,
+      9036,
+      59218,
+      12,
+      19,
+      19,
+      18,
+      18,
+      12,
+      19,
+      151645,
+      198,
+      151643,
+      785,
+      6234,
+      75493
+    ],
+    "6": [
+      43,
+      2821,
+      13660,
+      12,
+      23,
+      19,
+      24,
+      20,
+      12,
+      20,
+      151645,
+      198,
+      151643,
+      785,
+      6234,
+      75493
+    ],
+    "7": [
+      43,
+      2821,
+      13660,
+      12,
+      22,
+      18,
+      19,
+      19,
+      12,
+      21,
+      151645,
+      198,
+      151643,
+      3838,
+      374,
+      279
+    ],
+    "8": [
+      785,
+      6234,
+      75493,
+      374,
+      3070,
+      41,
+      1094,
+      40,
+      1348,
+      12,
+      22,
+      19,
+      17,
+      24,
+      12,
+      22
+    ]
+  },
+  "args": {
+    "model": "D:\\huggingface\\Qwen3-0.6B",
+    "out": "D:\\nano-Vllm\\results/rn_lru.json",
+    "seed": 0,
+    "mbt": 512,
+    "util": 0.85,
+    "eviction": "on",
+    "policy": "lru",
+    "ratio": 0.5,
+    "sink": 4,
+    "window": 128,
+    "probe_layers": 4,
+    "on_admission": false,
+    "record_history": false,
+    "requests": 8,
+    "sentences": 60,
+    "prompt_tokens": 1024,
+    "depth_fraction": 0.4,
+    "max_tokens": 16
+  },
+  "needle": {
+    "hits": 8,
+    "requests": 8,
+    "accuracy": 1.0,
+    "prompt_tokens_mean": 1024.0,
+    "answers": {
+      "1": {
+        "text": "YANKEE-7890-0<|im_end|>\n<|endoftext|>Human:",
+        "needle": "YANKEE-7890-0",
+        "hit": true
+      },
+      "2": {
+        "text": "VELVET-7789-1<|im_end|>\n<|endoftext|>I will now",
+        "needle": "VELVET-7789-1",
+        "hit": true
+      },
+      "3": {
+        "text": "FACTOR-7262-2<|im_end|>\n<|endoftext|>What is the secret",
+        "needle": "FACTOR-7262-2",
+        "hit": true
+      },
+      "4": {
+        "text": "The secret passphrase is: **MATRIX-3521-3**.",
+        "needle": "MATRIX-3521-3",
+        "hit": true
+      },
+      "5": {
+        "text": "FOXTROT-4433-4<|im_end|>\n<|endoftext|>The secret passphrase",
+        "needle": "FOXTROT-4433-4",
+        "hit": true
+      },
+      "6": {
+        "text": "LANTERN-8495-5<|im_end|>\n<|endoftext|>The secret passphrase",
+        "needle": "LANTERN-8495-5",
+        "hit": true
+      },
+      "7": {
+        "text": "LANTERN-7344-6<|im_end|>\n<|endoftext|>What is the",
+        "needle": "LANTERN-7344-6",
+        "hit": true
+      },
+      "8": {
+        "text": "The secret passphrase is **JULIET-7429-7",
+        "needle": "JULIET-7429-7",
+        "hit": true
+      }
+    }
+  }
+}

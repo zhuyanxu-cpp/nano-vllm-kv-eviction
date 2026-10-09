@@ -1,0 +1,147 @@
+{
+  "engine": {
+    "num_kvcache_blocks": 48,
+    "block_size": 256,
+    "kv_token_capacity": 12288,
+    "max_model_len": 4096
+  },
+  "workload": {
+    "requests": 8,
+    "prompt_tokens": 8192,
+    "max_tokens": 8,
+    "total_completion_tokens": 64,
+    "oversubscription": 0.6666666666666666
+  },
+  "metrics": {
+    "wall_seconds": 8.59476629999699,
+    "steps": 23,
+    "ttft_mean_s": 3.7476964874658734,
+    "ttft_p90_s": 5.813971399969887,
+    "ttft_max_s": 6.640627499960829,
+    "tpot_mean_s": 0.6924385446473025,
+    "output_tokens_per_s": 7.446392114236127,
+    "step_mean_s": 0.3736708869489477,
+    "block_occupancy_mean": 22.956521739130434,
+    "block_occupancy_max": 40,
+    "block_pool_size": 48,
+    "prefill_seconds": 6.640377099858597,
+    "prefill_steps": 16,
+    "prefill_tokens": 8192,
+    "decode_seconds": 1.9540532999671996,
+    "decode_steps": 7,
+    "decode_batch_seqs": 56
+  },
+  "eviction": {
+    "events": 0,
+    "tokens_evicted": 0,
+    "blocks_freed": 0,
+    "preemptions": 0,
+    "select_seconds": 0.0,
+    "move_seconds": 0.0,
+    "score_read_seconds": 0.0,
+    "kv_private_sequences": 0,
+    "record_history": false
+  },
+  "outputs": {
+    "1": [
+      1070,
+      30645,
+      4710,
+      322,
+      4697,
+      5316,
+      198,
+      947
+    ],
+    "2": [
+      294,
+      505,
+      336,
+      450,
+      76628,
+      2840,
+      372,
+      3594
+    ],
+    "3": [
+      422,
+      7749,
+      11727,
+      287,
+      11,
+      422,
+      7749,
+      10163
+    ],
+    "4": [
+      424,
+      198,
+      6709,
+      17753,
+      1816,
+      659,
+      10042,
+      35117
+    ],
+    "5": [
+      2420,
+      705,
+      1473,
+      7683,
+      9121,
+      3691,
+      8697,
+      24023
+    ],
+    "6": [
+      3941,
+      71932,
+      271,
+      14621,
+      220,
+      39038,
+      220,
+      6824
+    ],
+    "7": [
+      261,
+      1151,
+      814,
+      1279,
+      280,
+      20939,
+      280,
+      197
+    ],
+    "8": [
+      273,
+      5582,
+      17642,
+      197,
+      197,
+      14,
+      23876,
+      220
+    ]
+  },
+  "args": {
+    "model": "D:\\huggingface\\Qwen3-0.6B",
+    "out": "D:\\nano-Vllm\\results/raq_lru.json",
+    "seed": 0,
+    "mbt": 512,
+    "util": 0.85,
+    "eviction": "on",
+    "policy": "lru",
+    "ratio": 0.5,
+    "sink": 4,
+    "window": 128,
+    "probe_layers": 4,
+    "on_admission": false,
+    "bulk_kv_move": false,
+    "record_history": false,
+    "requests": 8,
+    "prompt_len": 1024,
+    "max_tokens": 8,
+    "temperature": 0.6
+  }
+}

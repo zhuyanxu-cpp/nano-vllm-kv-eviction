@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 import torch
 import torch.distributed as dist
 from multiprocessing.synchronize import Event
@@ -23,7 +24,11 @@ class ModelRunner:
         self.rank = rank
         self.event = event
 
-        dist.init_process_group("nccl", "tcp://localhost:2333", world_size=self.world_size, rank=rank)
+        # local Windows edit: Windows PyTorch ships no NCCL (fall back to gloo) and
+        # this build's TCPStore has no libuv support, so use the legacy backend.
+        backend = "nccl" if dist.is_nccl_available() else "gloo"
+        init_method = "tcp://localhost:2333" + ("" if backend == "nccl" else "?use_libuv=0")
+        dist.init_process_group(backend, init_method, world_size=self.world_size, rank=rank)
         torch.cuda.set_device(rank)
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(hf_config.dtype)
@@ -109,16 +114,124 @@ class ModelRunner:
         current = torch.cuda.memory_stats()["allocated_bytes.all.current"]
         num_kv_heads = hf_config.num_key_value_heads // self.world_size
         head_dim = getattr(hf_config, "head_dim", hf_config.hidden_size // hf_config.num_attention_heads)
-        block_bytes = 2 * hf_config.num_hidden_layers * self.block_size * num_kv_heads * head_dim * hf_config.dtype.itemsize
+        quant = config.kv_quant == "int8"
+        groups = head_dim // config.kv_quant_group
+        # Bytes per block across all layers, computed from the layout that is
+        # actually allocated. This is where quantisation turns into capacity: the
+        # block pool is sized by this number, so halving the bytes doubles the
+        # blocks. The fp16 scales are part of the accounting, not free.
+        elem_bytes = 1 if quant else hf_config.dtype.itemsize
+        block_bytes = 2 * hf_config.num_hidden_layers * self.block_size * num_kv_heads * head_dim * elem_bytes
+        if quant:
+            block_bytes += hf_config.num_hidden_layers * self.block_size * num_kv_heads * (groups + 1) * 2
         config.num_kvcache_blocks = int(total * config.gpu_memory_utilization - used - peak + current) // block_bytes
         assert config.num_kvcache_blocks > 0
-        self.kv_cache = torch.empty(2, hf_config.num_hidden_layers, config.num_kvcache_blocks, self.block_size, num_kv_heads, head_dim)
+        if quant:
+            shape = (hf_config.num_hidden_layers, config.num_kvcache_blocks, self.block_size, num_kv_heads)
+            self.k_cache = torch.empty(*shape, head_dim, dtype=torch.int8, device="cuda")
+            self.v_cache = torch.empty(*shape, head_dim, dtype=torch.int8, device="cuda")
+            self.k_scale = torch.empty(*shape, groups, dtype=torch.float16, device="cuda")
+            self.v_scale = torch.empty(*shape, dtype=torch.float16, device="cuda")
+            self.kv_cache = None
+        else:
+            self.k_cache = self.v_cache = self.k_scale = self.v_scale = None
+            self.kv_cache = torch.empty(2, hf_config.num_hidden_layers, config.num_kvcache_blocks, self.block_size, num_kv_heads, head_dim)
+        # Per-slot accumulated attention mass, only when the h2o policy is used.
+        # Lives in the same place as the KV cache because both are indexed by
+        # physical slot and both are permuted by move_slots().
+        self.eviction_scores = None
+        if config.kv_eviction and config.eviction_policy == "h2o":
+            self.eviction_scores = torch.zeros(
+                config.num_kvcache_blocks * self.block_size, dtype=torch.float32, device="cuda")
+        num_probe = config.eviction_probe_layers if self.eviction_scores is not None else 0
+        probe_stride = max(1, hf_config.num_hidden_layers // num_probe) if num_probe else 0
         layer_id = 0
         for module in self.model.modules():
             if hasattr(module, "k_cache") and hasattr(module, "v_cache"):
-                module.k_cache = self.kv_cache[0, layer_id]
-                module.v_cache = self.kv_cache[1, layer_id]
+                if quant:
+                    module.k_cache = self.k_cache[layer_id]
+                    module.v_cache = self.v_cache[layer_id]
+                    module.k_scale = self.k_scale[layer_id]
+                    module.v_scale = self.v_scale[layer_id]
+                    module.quant_group = config.kv_quant_group
+                else:
+                    module.k_cache = self.kv_cache[0, layer_id]
+                    module.v_cache = self.kv_cache[1, layer_id]
+                    module.k_scale = module.v_scale = None
+                # Spread the probed layers evenly instead of taking the first N,
+                # and keep the number small: reading the keys twice is the whole
+                # cost of collecting importance scores without kernel support.
+                module.eviction_scores = self.eviction_scores if (probe_stride and layer_id % probe_stride == 0) else None
                 layer_id += 1
+
+    # ---- KV cache eviction -------------------------------------------------
+
+    def read_eviction_scores(self, slots: list[int]) -> "np.ndarray":
+        """Attention mass accumulated for the given physical slots (CPU copy)."""
+        idx = torch.tensor(slots, dtype=torch.long, device="cuda")
+        return self.eviction_scores.index_select(0, idx).cpu().numpy()
+
+    def clear_block_scores(self, block_ids: list[int]):
+        """Forget accumulated importance for blocks that left a sequence.
+
+        The score buffer is indexed by physical slot, but slots outlive the
+        sequence that filled them: when a block is freed and handed to a new
+        sequence, the previous occupant's accumulated attention mass would be
+        inherited and quietly bias the new sequence's eviction decisions. Nothing
+        in the addressing depends on this - it is a policy-quality bug, not a
+        correctness one - but it is still wrong.
+        """
+        if self.eviction_scores is None or not block_ids:
+            return
+        blocks = torch.tensor(block_ids, dtype=torch.long, device="cuda")
+        slots = (blocks[:, None] * self.block_size
+                 + torch.arange(self.block_size, device="cuda")[None, :]).reshape(-1)
+        self.eviction_scores[slots] = 0
+
+    def move_slots(self, src_slots: list[int], dst_slots: list[int]):
+        """Compact the KV cache in place: dst <- src, for both K and V, all layers.
+
+        Called between scheduler steps, while the model is not executing. The
+        copy is done one layer at a time on purpose: the obvious one-liner
+        ``kv[:, :, dst] = kv[:, :, src]`` materialises
+        ``(2, num_layers, n, kv_heads, head_dim)`` in one go, which for a
+        900-token eviction is about 1 GB of transient allocation. On the 4 GB
+        test card that made the caching allocator thrash and slowed the *decode*
+        steps that followed by 4.6x - the move itself looked free (0.04 s of
+        CPU-side launch time) because CUDA work is asynchronous and the cost
+        shows up later. Per layer the transient is under 2 MB.
+        """
+        src = torch.tensor(src_slots, dtype=torch.long, device="cuda")
+        dst = torch.tensor(dst_slots, dtype=torch.long, device="cuda")
+        if self.kv_cache is None:
+            # int8 cache: four per-layer tensors share the same slot numbering, so
+            # the same index pair compacts data and scales together. Moving them
+            # separately would silently desynchronise a key from its scale.
+            for layer in range(len(self.k_cache)):
+                for tensor in (self.k_cache[layer], self.v_cache[layer],
+                               self.k_scale[layer], self.v_scale[layer]):
+                    flat = tensor.reshape(tensor.shape[0] * tensor.shape[1], *tensor.shape[2:])
+                    flat[dst] = flat[src]
+            if self.eviction_scores is not None:
+                self.eviction_scores[dst] = self.eviction_scores[src]
+            return
+        if self.config.eviction_bulk_kv_move:
+            # Kept only to reproduce the measurement that motivated the loop
+            # below; see docs/bench_results.md section 4.
+            shape = self.kv_cache.shape
+            kv = self.kv_cache.view(2, shape[1], -1, shape[-2], shape[-1])
+            kv[:, :, dst] = kv[:, :, src]
+            if self.eviction_scores is not None:
+                self.eviction_scores[dst] = self.eviction_scores[src]
+            return
+        num_layers = self.kv_cache.shape[1]
+        num_kv_heads, head_dim = self.kv_cache.shape[-2], self.kv_cache.shape[-1]
+        for layer in range(num_layers):
+            for kv in range(2):
+                block = self.kv_cache[kv, layer].view(-1, num_kv_heads, head_dim)
+                block[dst] = block[src]     # advanced indexing copies, so no clone
+        if self.eviction_scores is not None:
+            self.eviction_scores[dst] = self.eviction_scores[src]
 
     def prepare_block_tables(self, seqs: list[Sequence]):
         max_len = max(len(seq.block_table) for seq in seqs)
@@ -176,9 +289,14 @@ class ModelRunner:
         context_lens = []
         for seq in seqs:
             input_ids.append(seq.last_token)
+            # positions stay LOGICAL: RoPE encodes the absolute position of the
+            # query, and the cached keys already carry the rotation they were
+            # written with, so relative phases stay correct after an eviction.
             positions.append(len(seq) - 1)
-            context_lens.append(len(seq))
-            slot_mapping.append(seq.block_table[-1] * self.block_size + seq.last_block_num_tokens  - 1)
+            # Everything that addresses a slot is PHYSICAL: how many keys sit in
+            # the cache, and where the new key goes.
+            context_lens.append(seq.physical_num_tokens)
+            slot_mapping.append(seq.block_table[-1] * self.block_size + seq.physical_last_block_num_tokens - 1)
         input_ids = torch.tensor(input_ids, dtype=torch.int64, pin_memory=True).cuda(non_blocking=True)
         positions = torch.tensor(positions, dtype=torch.int64, pin_memory=True).cuda(non_blocking=True)
         slot_mapping = torch.tensor(slot_mapping, dtype=torch.int32, pin_memory=True).cuda(non_blocking=True)

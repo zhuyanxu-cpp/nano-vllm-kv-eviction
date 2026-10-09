@@ -1,0 +1,229 @@
+{
+  "args": {
+    "model": "D:\\huggingface\\Qwen3-0.6B",
+    "out": "results\\p_lru.json",
+    "requests": 16,
+    "prompt_len": 1024,
+    "prompt_file": null,
+    "max_tokens": 8,
+    "temperature": 0.6,
+    "seed": 0,
+    "mbt": 512,
+    "util": 0.85,
+    "enforce_eager": true,
+    "eviction": "on",
+    "policy": "lru",
+    "ratio": 0.5,
+    "sink": 4,
+    "window": 128,
+    "probe_layers": 4,
+    "record_history": false,
+    "on_admission": false
+  },
+  "engine": {
+    "num_kvcache_blocks": 48,
+    "block_size": 256,
+    "kv_token_capacity": 12288,
+    "max_model_len": 4096,
+    "init_seconds": 5.819711500022095
+  },
+  "workload": {
+    "requests": 16,
+    "prompt_len": 1024,
+    "max_tokens": 8,
+    "total_prompt_tokens": 16384,
+    "total_completion_tokens": 128
+  },
+  "metrics": {
+    "wall_seconds": 18.686485600017477,
+    "steps": 52,
+    "ttft_mean_s": 7.988857943772018,
+    "ttft_max_s": 17.299598000012338,
+    "tpot_mean_s": 1.5282325223207798,
+    "output_tokens_per_s": 6.849870154283066,
+    "total_tokens_per_s": 883.6332499025154,
+    "step_mean_s": 0.35934379038092,
+    "block_occupancy_mean": 24.134615384615383,
+    "block_occupancy_max": 48,
+    "block_pool_size": 48,
+    "prefill_seconds": 14.845341199892573,
+    "prefill_steps": 38,
+    "prefill_tokens": 18438,
+    "decode_seconds": 3.840535899915267,
+    "decode_steps": 14,
+    "decode_batch_seqs": 110
+  },
+  "eviction": {
+    "events": 12,
+    "tokens_evicted": 1809,
+    "blocks_freed": 12,
+    "preemptions": 2,
+    "select_seconds": 0.0015610998962074518,
+    "move_seconds": 0.07360730005893856,
+    "score_read_seconds": 0.0,
+    "kv_private_sequences": 0,
+    "record_history": false
+  },
+  "outputs": {
+    "1": [
+      1070,
+      17642,
+      46452,
+      197,
+      197,
+      4272,
+      320,
+      17
+    ],
+    "2": [
+      294,
+      10733,
+      304,
+      279,
+      1142,
+      198,
+      14621,
+      32313
+    ],
+    "3": [
+      422,
+      2412,
+      315,
+      279,
+      6059,
+      11,
+      11469,
+      11
+    ],
+    "4": [
+      424,
+      280,
+      715,
+      14057,
+      8731,
+      304,
+      4344,
+      198
+    ],
+    "5": [
+      2420,
+      2392,
+      21960,
+      62,
+      18,
+      35,
+      198,
+      3554
+    ],
+    "6": [
+      3941,
+      76325,
+      2769,
+      13089,
+      13038,
+      8338,
+      14908,
+      8107
+    ],
+    "7": [
+      261,
+      1151,
+      14731,
+      8420,
+      374,
+      279,
+      27722,
+      323
+    ],
+    "8": [
+      273,
+      66,
+      31657,
+      2488,
+      5843,
+      287,
+      198,
+      1843
+    ],
+    "9": [
+      27193,
+      3482,
+      280,
+      18611,
+      2315,
+      322,
+      28595,
+      311
+    ],
+    "10": [
+      13,
+      3080,
+      14925,
+      250,
+      30484,
+      252,
+      31411,
+      101
+    ],
+    "11": [
+      5241,
+      4710,
+      17160,
+      17160,
+      17160,
+      17160,
+      17160,
+      17160
+    ],
+    "12": [
+      72,
+      198,
+      42273,
+      15075,
+      1986,
+      374,
+      264,
+      1293
+    ],
+    "13": [
+      1,
+      323,
+      330,
+      6287,
+      1,
+      323,
+      330,
+      5987
+    ],
+    "14": [
+      291,
+      323,
+      1320,
+      661,
+      198,
+      198,
+      1572,
+      197
+    ],
+    "15": [
+      478,
+      271,
+      44358,
+      17316,
+      9358,
+      9062,
+      4552,
+      35117
+    ],
+    "16": [
+      2900,
+      96225,
+      7568,
+      371,
+      304,
+      10292,
+      21029,
+      24520
+    ]
+  }
+}

@@ -193,3 +193,8 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Local notes: personal documents and study notes, not part of the project.
+docs/简历-项目经历.md
+docs/面试讲解准备.md
+docs/PyTorch速成.md

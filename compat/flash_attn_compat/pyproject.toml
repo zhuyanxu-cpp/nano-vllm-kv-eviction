@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flash-attn-compat"
+version = "1.0.0"
+description = "Pure-PyTorch stand-in for the flash-attn entry points nano-vllm uses, for CUDA GPUs older than Ampere (e.g. Turing sm_75)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["torch"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["flash_attn*"]

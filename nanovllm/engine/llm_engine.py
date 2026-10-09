@@ -32,7 +32,20 @@ class LLMEngine:
         self.tokenizer = AutoTokenizer.from_pretrained(config.model, use_fast=True)
         config.eos = self.tokenizer.eos_token_id
         self.scheduler = Scheduler(config)
+        # KV eviction needs two things only the runner has: the accumulated
+        # attention mass per slot, and the ability to move KV between slots.
+        # Wiring them here keeps the scheduler free of CUDA and testable with
+        # fakes. (Single-rank only: with TP > 1 the cache is sharded.)
+        if config.kv_eviction:
+            if config.tensor_parallel_size != 1:
+                raise NotImplementedError("KV eviction is implemented for tensor_parallel_size == 1")
+            self.scheduler.kv_cache_io = self.model_runner
+            if config.eviction_policy == "h2o":
+                self.scheduler.score_provider = self.model_runner.read_eviction_scores
         atexit.register(self.exit)
+
+    def eviction_stats(self) -> dict:
+        return self.scheduler.stats.as_dict()
 
     def exit(self):
         self.model_runner.call("exit")
