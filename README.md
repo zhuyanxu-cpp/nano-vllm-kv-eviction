@@ -6,6 +6,15 @@
 <a href="https://trendshift.io/repositories/15323" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15323" alt="GeeeekExplorer%2Fnano-vllm | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
+> **About this repository.** This is a derivative of
+> [nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) (MIT), used as a
+> platform for studying KV-cache management. **The upstream engine is not my
+> work.** Everything under **KV Cache Eviction** below is: the eviction policies,
+> int8 KV quantisation, the benchmark suite, and the three consistency fixes that
+> eviction needs inside a paged-attention + prefix-caching engine. Every number
+> in this README comes from a real run — the raw artifacts behind the tables are
+> in [`results/`](results/) and [`docs/bench_results.md`](docs/bench_results.md).
+
 # Nano-vLLM
 
 A lightweight vLLM implementation built from scratch.
@@ -61,7 +70,7 @@ See `bench.py` for benchmark.
 | Nano-vLLM      | 133,966     | 93.41    | 1434.13               |
 
 
-## KV Cache Eviction (local feature, default off)
+## KV Cache Eviction — what this repository adds
 
 Everything below is measured on the author's machine: **GTX 1650 Ti (4 GiB, Turing
 sm_75) + Qwen3-0.6B in bf16**, real engine, no mocks. Full numbers and the
