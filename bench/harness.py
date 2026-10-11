@@ -37,6 +37,7 @@ def build_llm(args) -> LLM:
         eviction_bulk_kv_move=args.bulk_kv_move,
         kv_quant=args.kv_quant,
         kv_quant_group=args.kv_quant_group,
+        kv_quant_fused=args.kv_quant_fused,
     )
     llm.scheduler.stats.record_history = args.record_history
     return llm
@@ -144,6 +145,8 @@ def add_common_args(ap):
     ap.add_argument("--bulk-kv-move", action="store_true",
                     help="reproduce the single-tensor KV copy the per-layer loop replaced")
     ap.add_argument("--kv-quant", choices=["none", "int8"], default="none")
+    ap.add_argument("--kv-quant-fused", action="store_true",
+                    help="write the int8 KV cache with one fused Triton kernel")
     ap.add_argument("--kv-quant-group", type=int, default=32,
                     help="channel group for K; V is quantised per token")
     ap.add_argument("--record-history", action="store_true")

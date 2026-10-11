@@ -4,6 +4,7 @@ import triton
 import triton.language as tl
 
 from flash_attn import flash_attn_varlen_func, flash_attn_with_kvcache
+from nanovllm.layers.kv_quant_fused import quantize_kvcache_fused
 from nanovllm.utils.context import get_context
 
 
@@ -104,6 +105,8 @@ class Attention(nn.Module):
         # Set by ModelRunner when the KV cache is int8; None means fp16/bf16.
         self.k_scale = self.v_scale = None
         self.quant_group = 32
+        # Set by ModelRunner: write the int8 cache with the fused Triton kernel.
+        self.quant_fused = False
 
     def _dequant_keys(self, keys_i8, blocks, length):
         """(n_blocks, block_size, KvH, D) int8 -> (length, KvH, D) float."""
@@ -151,6 +154,9 @@ class Attention(nn.Module):
         if k_cache.numel() and v_cache.numel():
             if self.k_scale is None:
                 store_kvcache(k, v, k_cache, v_cache, context.slot_mapping)
+            elif self.quant_fused:
+                quantize_kvcache_fused(k, v, k_cache, v_cache, self.k_scale, self.v_scale,
+                                       context.slot_mapping, self.quant_group)
             else:
                 quantize_kvcache(k, v, k_cache, v_cache, self.k_scale, self.v_scale,
                                  context.slot_mapping, self.quant_group)

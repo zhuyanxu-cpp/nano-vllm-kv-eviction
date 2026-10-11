@@ -154,6 +154,7 @@ class ModelRunner:
                     module.k_scale = self.k_scale[layer_id]
                     module.v_scale = self.v_scale[layer_id]
                     module.quant_group = config.kv_quant_group
+                    module.quant_fused = config.kv_quant_fused
                 else:
                     module.k_cache = self.kv_cache[0, layer_id]
                     module.v_cache = self.kv_cache[1, layer_id]

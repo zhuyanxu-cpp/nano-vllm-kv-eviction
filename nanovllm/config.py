@@ -33,6 +33,10 @@ class Config:
     # ---- KV cache quantisation (local feature, default off) ----
     kv_quant: str = "none"                # "none" | "int8"
     kv_quant_group: int = 32              # K is quantised per channel group; V per token
+    # Write the int8 cache with one fused Triton kernel instead of ~20 unfused
+    # torch ops: measured 13-20x -> 1.1-1.2x against the plain bf16 write. Kept as
+    # a switch so the unfused numbers stay reproducible.
+    kv_quant_fused: bool = False
 
     def __post_init__(self):
         assert os.path.isdir(self.model)
@@ -41,6 +45,8 @@ class Config:
         assert self.kv_quant in ("none", "int8"), self.kv_quant
         if self.kv_quant == "int8":
             assert self.kv_quant_group in (16, 32, 64, 128), self.kv_quant_group
+        if self.kv_quant_fused:
+            assert self.kv_quant == "int8", "kv_quant_fused needs kv_quant='int8'"
         if self.kv_eviction:
             assert self.eviction_policy in ("lru", "h2o", "random"), self.eviction_policy
             assert 0.0 < self.eviction_keep_ratio < 1.0, self.eviction_keep_ratio
